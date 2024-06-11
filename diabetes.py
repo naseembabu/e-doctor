@@ -70,16 +70,18 @@ models = {
 
 plt.figure(figsize=(10, 7))
 
+# Define the cross-validation strategy
+cv = StratifiedKFold(n_splits=10, shuffle=True, random_state=42)
+
 for name, model in models.items():
-    # Train the model
-    model.fit(X_train, y_train)
-    y_pred = model.predict(X_test)
+    # Get cross-validated predictions
+    y_pred = cross_val_predict(model, X, y, cv=cv)
 
     # Calculate evaluation metrics
-    accuracy = accuracy_score(y_test, y_pred)
-    precision = precision_score(y_test, y_pred)
-    recall = recall_score(y_test, y_pred)
-    f1 = f1_score(y_test, y_pred)
+    accuracy = accuracy_score(y, y_pred)
+    precision = precision_score(y, y_pred)
+    recall = recall_score(y, y_pred)
+    f1 = f1_score(y, y_pred)
 
     # Print evaluation results
     print(f"Model: {name}")
@@ -87,16 +89,16 @@ for name, model in models.items():
     print(f"Precision: {precision:.4f}")
     print(f"Recall: {recall:.4f}")
     print(f"F1-score: {f1:.4f}")
-    print(classification_report(y_test, y_pred))
+    print(classification_report(y, y_pred))
     print("\n")
 
     # Compute ROC curve and ROC area
     if hasattr(model, "predict_proba"):
-        y_score = model.predict_proba(X_test)[:, 1]
+        y_score = cross_val_predict(model, X, y, cv=cv, method='predict_proba')[:, 1]
     else:  # Use decision function for models like SVC
-        y_score = model.decision_function(X_test)
+        y_score = cross_val_predict(model, X, y, cv=cv, method='decision_function')
 
-    fpr, tpr, _ = roc_curve(y_test, y_score)
+    fpr, tpr, _ = roc_curve(y, y_score)
     roc_auc = auc(fpr, tpr)
     plt.plot(fpr, tpr, lw=2, label=f'{name} (AUC = {roc_auc:.2f})')
 
@@ -108,3 +110,4 @@ plt.ylabel('True Positive Rate', fontsize=12, fontweight='bold')
 plt.title('Receiver Operating Characteristic (ROC) Curve', fontsize=14, fontweight='bold')
 plt.legend(loc="lower right", fontsize=10, prop={'weight': 'bold'})
 plt.show()
+
